@@ -110,4 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
 dependencies:
 barcode_scan2: ^4.2.4
 
+refer: https://github.com/codeislife07/barcode_scanner_flutter/tree/master
+
+
 */
