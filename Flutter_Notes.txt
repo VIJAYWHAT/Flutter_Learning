@@ -1,0 +1,21 @@
+Theme adding ==>
+
+theme: ThemeData(
+          useMaterial3: true,
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+        ),
+
+Text==> Text("VJ Flutter App"),
+
+floating Button:
+
+floatingActionButton: FloatingActionButton(
+              child: Icon(Icons.add_circle_outline),
+              onPressed: () {
+                setState(() {
+                  i += 2;
+                  placeholder = "Clicked";
+                });
+              }),
+
+hide Debug text ==> debugShowCheckedModeBanner: false,
