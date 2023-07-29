@@ -1,15 +1,15 @@
 Theme adding ==>
 
 theme: ThemeData(
-          useMaterial3: true,
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange),
+          useMaterial3: true, //For Change the widgets shape and colour (ex:Square icon,black text)
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepOrange), //For the colour
         ),
 
 Text==> Text("VJ Flutter App"),
 
-floating Button:
+floating Button ==> 
 
-floatingActionButton: FloatingActionButton(
+		floatingActionButton: FloatingActionButton(
               child: Icon(Icons.add_circle_outline),
               onPressed: () {
                 setState(() {
@@ -19,3 +19,68 @@ floatingActionButton: FloatingActionButton(
               }),
 
 hide Debug text ==> debugShowCheckedModeBanner: false,
+
+safearea ==> SafeArea(child: const Text(
+              'You have pushed the button this many times:',
+            ),
+             ), //for down of notification bar area 
+
+Stateless widgets ==> only use for non changable areas 
+			Where your user interface not changable or not changes happen in dynamicly
+
+- The widgets whose state can not be altered once they are built are called stateless widgets. 
+- These widgets are immutable once they are built i.e any amount of change in the variables, icons, buttons, or retrieving data can not change the state of the app.
+- Stateless widget overrides the build() method and returns a widget.
+- For example, we use Text or the Icon in our flutter application where the state of the widget does not change in the runtime.
+
+Code :
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(const MyApp());
+
+class MyApp extends StatelessWidget {
+const MyApp({Key? key}) : super(key: key);
+
+@override
+Widget build(BuildContext context) {
+	return Container();
+	}
+}
+
+Stateful Widgets ==>
+
+Widgets that changes its properties during runtime are the stateful widgets.To create a stateless widget, we have to override the createstate() method, which returns the state if the widget.
+(Eg: Check box,RadioButton, Form, TextField.)
+
+- The widgets whose state can be altered once they are built are called stateful Widgets.
+- These states are mutable and can be changed multiple times in their lifetime.
+- This simply means the state of an app can change multiple times with different sets of variables, inputs, data.
+-  Stateful widget overrides the createState() method and returns a State.
+- It is used when the UI can change dynamically.
+
+Code: 
+
+import 'package:flutter/material.dart';
+
+void main() => runApp(const MyApp());
+
+class MyApp extends StatefulWidget {
+const MyApp({Key? key}) : super(key: key);
+
+@override
+// ignore: library_private_types_in_public_api
+_MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+@override
+Widget build(BuildContext context) {
+	return Container();
+	}
+}
+
+
+
+
+

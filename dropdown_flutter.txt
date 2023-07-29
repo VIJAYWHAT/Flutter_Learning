@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: MyHomePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  @override
+  _MyHomePageState createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  String? selectedParentValue;
+  String? selectedChildValue;
+
+  // Define the available parent and child dropdown values.
+  final List<String> parentValues = ['Parent A', 'Parent B', 'Parent C'];
+  final Map<String, List<String>> childValues = {
+    'Parent A': ['Child A1', 'Child A2', 'Child A3'],
+    'Parent B': ['Child B1', 'Child B2', 'Child B3'],
+    'Parent C': ['Child C1', 'Child C2', 'Child C3'],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Parent and Child Dropdowns'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Parent Container Dropdown
+            DropdownButton<String>(
+              value: selectedParentValue,
+              hint: Text('Select a Parent Value'),
+              onChanged: (newValue) {
+                setState(() {
+                  selectedParentValue = newValue;
+                  // When the parent value is changed, reset the child value
+                  selectedChildValue = null;
+                });
+              },
+              items: parentValues.map((value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
+            ),
+            SizedBox(height: 20),
+            // Child Container Dropdown
+            DropdownButton<String>(
+              value: selectedChildValue,
+              hint: Text('Select a Child Value'),
+              onChanged: (newValue) {
+                setState(() {
+                  selectedChildValue = newValue;
+                });
+              },
+              items: selectedParentValue != null
+                  ? childValues[selectedParentValue]?.map((value) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList()
+                  : [], // Show empty list when no parent value is selected.
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
