@@ -1,0 +1,75 @@
+//Popup code
+
+ListTile(
+
+              title: ElevatedButton(
+                child: Text("Show Weight"),
+                onPressed: (_collectingTask != null)
+                    ? () async {
+                  final messageBuffer = getMessageBuffer();
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text('Message'),
+                        content: Text(messageBuffer),
+                        actions: <Widget>[
+                          new TextButton(
+                            child: new Text("Close"),
+                            onPressed: () {
+                              Navigator.of(context).pop();
+                            },
+                          ),
+                        ],
+                      );
+                    },
+                  );
+                }
+                    : null,
+              )
+
+            ),//this for popup
+
+
+//Normal Main Page Text
+
+_collectingTask != null
+                ? Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Received Data:'),
+                   SizedBox(height: 8),
+                  Text(getMessageBuffer()),
+                ],
+              ),
+            )
+                : SizedBox.shrink(),//end of normal code
+
+//weight show downside of show weight
+
+ListTile(
+              title: ElevatedButton(
+                child: Text("Show Weight"),
+                onPressed: (_collectingTask != null)
+                    ? () async {
+                  final messageBuffer = getMessageBuffer();
+                  if (messageBuffer.isNotEmpty) {
+                    setState(() {
+                      _displayedMessage = messageBuffer;
+                    });
+                  }
+                }
+                    : null,
+              ),
+            ),
+            if (_displayedMessage.isNotEmpty)
+              Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text(
+                  _displayedMessage,
+                  style: TextStyle(fontSize: 16.0),
+                ),
+              ),
+
