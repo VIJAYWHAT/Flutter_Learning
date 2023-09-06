@@ -1,0 +1,246 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+import 'package:honeywell_scanner/honeywell_scanner.dart';
+
+void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp])
+      .then((_) => runApp(const MyApp()));
+}
+
+class MyApp extends StatefulWidget {
+  const MyApp({Key? key}) : super(key: key);
+
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp>
+    with WidgetsBindingObserver
+    implements ScannerCallback {
+  HoneywellScanner honeywellScanner = HoneywellScanner();
+  ScannedData? scannedData;
+  String? errorMessage;
+  bool scannerEnabled = true;
+  bool scan1DFormats = true;
+
+  bool scan2DFormats = true;
+  bool isDeviceSupported = false;
+  String _scanBarcodeResult = '';
+  bool light0 = true;
+  bool light1 = true;
+
+  static const BTN_START_SCANNER = 0,
+      BTN_STOP_SCANNER = 1,
+      BTN_START_SCANNING = 2,
+      BTN_STOP_SCANNING = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance?.addObserver(this);
+    honeywellScanner.scannerCallback = this;
+   
+    init();
+  }
+
+  Future<void> init() async {
+    updateScanProperties();
+    isDeviceSupported = await honeywellScanner.isSupported();
+    if (mounted) setState(() {});
+  }
+
+  void updateScanProperties() {
+    List<CodeFormat> codeFormats = [];
+    if (scan1DFormats) codeFormats.addAll(CodeFormatUtils.ALL_1D_FORMATS);
+    if (scan2DFormats) codeFormats.addAll(CodeFormatUtils.ALL_2D_FORMATS);
+
+    Map<String, dynamic> properties = {
+      ...CodeFormatUtils.getAsPropertiesComplement(codeFormats),
+      'DEC_CODABAR_START_STOP_TRANSMIT': true,
+      'DEC_EAN13_CHECK_DIGIT_TRANSMIT': true,
+    };
+    honeywellScanner.setProperties(properties);
+  }
+
+  @override
+  void onDecoded(ScannedData? scannedData) {
+    setState(() {
+      this.scannedData = scannedData;
+    });
+  }
+
+  @override
+  void onError(Exception error) {
+    setState(() {
+      errorMessage = error.toString();
+    });
+  }
+
+  Widget get scannedDataView => RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+            style: TextStyle(
+                color: Theme.of(context).textTheme.bodyText1?.color,
+                height: 0.8),
+            children: [
+              const TextSpan(text: 'Scanned code: '),
+              TextSpan(
+                  text: '${scannedData?.code}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              
+            ]),
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Honeywell scanner'),
+        ),
+        body: Center(
+          child: Scrollbar(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Text(
+                    'Device supported: $isDeviceSupported',
+                    style: TextStyle(
+                        color: isDeviceSupported ? Colors.green : Colors.red,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Scanner: ${scannerEnabled ? "Started" : "Stopped"}',
+                    style: TextStyle(
+                        color: scannerEnabled ? Colors.blue : Colors.orange),
+                  ),
+                  const SizedBox(height: 8),
+                  if (scannedData != null && errorMessage == null)
+                    scannedDataView,
+                  const SizedBox(height: 8),
+                  if (errorMessage != null) ...[
+                    Text(
+                      'Error: $errorMessage',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                 
+                  Switch.adaptive(
+                    value: light0,
+                    onChanged: (bool value) {
+                      setState(() {
+                        light0 = value;
+                        if (light0) {
+                          onClick(BTN_START_SCANNER);
+                        } else {
+                          onClick(BTN_STOP_SCANNER);
+                        }
+                      });
+                    },
+                  ),
+ 
+
+     
+                  ElevatedButton(
+                    onPressed: scanBarcodeNormal,
+                    child: Text("Start barcode scan"),
+                  ),
+                  Text(
+                    (_scanBarcodeResult != null && _scanBarcodeResult.isNotEmpty)
+                        ? "Barcode result $_scanBarcodeResult\n"
+                        : (scannedData?.code != null)
+                        ? "Camera scan result ${scannedData?.code}\n"
+                        : "",
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void scanBarcodeNormal() async {
+    String barcodeScanRes;
+    try {
+      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+          "#ff6666", "cancel", true, ScanMode.BARCODE);
+    } on PlatformException {
+      barcodeScanRes = "Failed to get platform version";
+    }
+    setState(() {
+      _scanBarcodeResult = barcodeScanRes;
+    });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    switch (state) {
+      case AppLifecycleState.resumed:
+        honeywellScanner.resumeScanner();
+        break;
+      case AppLifecycleState.inactive:
+        honeywellScanner.pauseScanner();
+        break;
+      case AppLifecycleState
+          .paused: //AppLifecycleState.paused is used as stopped state because deactivate() works more as a pause for lifecycle
+        honeywellScanner.pauseScanner();
+        break;
+      case AppLifecycleState.detached:
+        honeywellScanner.pauseScanner();
+        break;
+      default:
+        break;
+    }
+  }
+
+  Future<void> onClick(int id) async {
+    try {
+      errorMessage = null;
+      switch (id) {
+        case BTN_START_SCANNER:
+          if (await honeywellScanner.startScanner()) {
+            setState(() {
+              scannerEnabled = true;
+            });
+          }
+          break;
+        case BTN_STOP_SCANNER:
+          if (await honeywellScanner.stopScanner()) {
+            setState(() {
+              scannerEnabled = false;
+            });
+          }
+          break;
+        case BTN_START_SCANNING:
+          await honeywellScanner.startScanning();
+          break;
+        case BTN_STOP_SCANNING:
+          await honeywellScanner.stopScanning();
+          break;
+      }
+    } catch (e) {
+      print(e);
+      setState(() {
+        errorMessage = e.toString();
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    honeywellScanner.stopScanner();
+    super.dispose();
+  }
+}

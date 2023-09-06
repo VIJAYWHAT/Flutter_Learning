@@ -1,0 +1,67 @@
+Widget get scannedDataView => RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+            style: TextStyle(
+                color: Theme.of(context).textTheme.bodyText1?.color,
+                height: 0.8),
+            children: [
+              const TextSpan(text: 'Scanned code: '),
+              TextSpan(
+                  text: '${scannedData?.code}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              
+            ]),
+      )
+
+
+Widget get scannedDataView => RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+            style: TextStyle(
+                color: Theme.of(context).textTheme.bodyText1?.color,
+                height: 0.8),
+            children: [
+              const TextSpan(text: 'Scanned code: '),
+              TextSpan(
+                  text: '${scannedData?.code}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+
+              /*const TextSpan(text: 'Scanned codeId symbol: '),
+              TextSpan(
+                  text: '${scannedData?.codeId}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const TextSpan(text: 'Scanned code type: '),
+              TextSpan(
+                  text: '${scannedData?.codeType}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const TextSpan(text: 'Scanned aimId: '),
+              TextSpan(
+                  text: '${scannedData?.aimId}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const TextSpan(text: 'Scanned charset: '),
+              TextSpan(
+                  text: '${scannedData?.charset}\n\n',
+                  style: const TextStyle(fontWeight: FontWeight.bold)),*/
+              Text("Barcode result $_scanBarcodeResult"),
+            ]
+        ),
+      ); //text in barcode scanner result
+
+---------------------------------------------------------------------------
+
+ElevatedButton(
+                    onPressed: scanBarcodeNormal,
+                    child: Text("Start barcode scan"),
+                  ),
+                  if (_scanBarcodeResult != null && _scanBarcodeResult.isNotEmpty)
+                    Text("Barcode result $_scanBarcodeResult\n"),
+                  if (scannedData?.code != null)
+                    Text("Barcode result ${scannedData?.code}\n"), //Text with If condition
+
+ElevatedButton(
+                      onPressed: scanBarcodeNormal,
+                      child: Text("Start barcode scan")),
+                       Text("Barcode result $_scanBarcodeResult\n"),
+                  Text("Barcode result ${scannedData?.code}\n") //normal text
+
+

@@ -1,0 +1,66 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+
+class BarcodeScannerWidget extends StatefulWidget {
+  @override
+  _BarcodeScannerWidgetState createState() => _BarcodeScannerWidgetState();
+}
+
+class _BarcodeScannerWidgetState extends State<BarcodeScannerWidget> {
+  final TextEditingController _barcodeController = TextEditingController();
+  String _scanResult = '';
+
+  void _barcodeScan() {
+    // Add your barcode scanning logic here
+    // You can update the _scanResult using setState after scanning
+    setState(() {
+      // Simulating scanned result for demonstration
+      _scanResult = 'Scanned Barcode Result';
+    });
+  }
+
+  @override
+  void dispose() {
+    _barcodeController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _barcodeController,
+          decoration: InputDecoration(
+            labelText: 'Scan Barcode',
+          ),
+        ),
+        SizedBox(height: 10),
+        SizedBox(
+          height: 45,
+          child: ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              primary: Colors.cyan,
+            ),
+            onPressed: _barcodeScan,
+            child: Text(
+              'Barcode Scan',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+void main() {
+  runApp(MaterialApp(
+    home: Scaffold(
+      appBar: AppBar(
+        title: Text('Barcode Scanner'),
+      ),
+      body: BarcodeScannerWidget(),
+    ),
+  ));
+}

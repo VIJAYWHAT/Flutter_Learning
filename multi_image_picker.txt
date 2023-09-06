@@ -1,0 +1,107 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
+void main() {
+  runApp(MaterialApp(
+    home: Home(),
+  ));
+}
+
+class Home extends StatefulWidget {
+  @override
+  State<Home> createState() => _HomeState();
+}
+
+class _HomeState extends State<Home> {
+  final ImagePicker imgpicker = ImagePicker();
+  List<XFile>? imagefiles;
+
+  openImages() async {
+    try {
+      var pickedfiles = await imgpicker.pickMultiImage();
+      if (pickedfiles != null) {
+        imagefiles = pickedfiles;
+        setState(() {});
+      } else {
+        print("No image is selected.");
+      }
+    } catch (e) {
+      print("Error while picking file.");
+    }
+  }
+
+  openCamera() async {
+    try {
+      var pickedfile = await imgpicker.pickImage(source: ImageSource.camera);
+      if (pickedfile != null) {
+        imagefiles = [pickedfile];
+        setState(() {});
+      } else {
+        print("No image is selected.");
+      }
+    } catch (e) {
+      print("Error while capturing from camera.");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      appBar: AppBar(
+        title: Text("Multiple Image Picker Flutter"),
+        backgroundColor: Colors.deepPurpleAccent,
+      ),
+      body: Container(
+        alignment: Alignment.center,
+        padding: EdgeInsets.all(20),
+        child: Column(
+          children: [
+            // Dropdown button with options
+            DropdownButton<String>(
+              hint: Text("Select Image"),
+              items: [
+                DropdownMenuItem<String>(
+                  child: Text("Open Images"),
+                  value: "Open Images",
+                ),
+                DropdownMenuItem<String>(
+                  child: Text("Open Camera"),
+                  value: "Open Camera",
+                ),
+              ],
+              onChanged: (value) {
+                if (value == "Open Images") {
+                  openImages();
+                } else if (value == "Open Camera") {
+                  openCamera();
+                }
+              },
+            ),
+
+            Divider(),
+            Text("Picked Files:"),
+            Divider(),
+
+            imagefiles != null
+                ? Wrap(
+              children: imagefiles!.map((imageone) {
+                return Container(
+                  child: Card(
+                    child: Container(
+                      height: 100,
+                      width: 100,
+                      child: Image.file(File(imageone.path)),
+                    ),
+                  ),
+                );
+              }).toList(),
+            )
+                : Container(),
+          ],
+        ),
+      ),
+    );
+  }
+}

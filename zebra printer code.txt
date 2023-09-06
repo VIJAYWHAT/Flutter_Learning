@@ -1,0 +1,174 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:zebrautility/ZebraPrinter.dart';
+import 'package:zebrautility/Zebrautility.dart';
+
+void main() {
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Zebra Printer App',
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      home: const MyHomePage(title: 'Zebra Printer'),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({Key? key, required this.title});
+
+  final String title;
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  late ZebraPrinter zebraPrinter;
+  List<DiscoveredPrinter> discoveredPrinters = [];
+  bool discoveryInProgress = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize the ZebraPrinter instance using Zebrautility
+    Zebrautility.getPrinterInstance(
+      onPrinterFound: onPrinterFound,
+      onPrinterDiscoveryDone: onPrinterDiscoveryDone,
+      onDiscoveryError: onDiscoveryError,
+      onChangePrinterStatus: onChangePrinterStatus,
+      onPermissionDenied: onPermissionDenied,
+    ).then((printer) {
+      setState(() {
+        zebraPrinter = printer;
+      });
+    });
+  }
+
+  // Implement your callback functions as needed
+  void onPrinterFound(String name, String ipAddress, bool isWifi) {
+    setState(() {
+      // Create a DiscoveredPrinter object to hold the printer information
+      final discoveredPrinter = DiscoveredPrinter(
+        name: name,
+        ipAddress: ipAddress,
+        isWifi: isWifi,
+      );
+
+      // Add the discovered printer to the list
+      discoveredPrinters.add(discoveredPrinter);
+    });
+  }
+
+  void onPrinterDiscoveryDone() {
+    setState(() {
+
+      discoveryInProgress = false;
+    });
+  }
+
+
+  void onDiscoveryError(int errorCode, String errorText) {
+    setState(() {
+      // Update the UI or perform actions based on the error
+      discoveryInProgress = false; // Assuming you have a boolean flag for discovery status
+    });
+
+    // Display an error message and allow the user to retry discovery
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Discovery Error'),
+        content: Text(errorText),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close the dialog
+              // Retry the printer discovery here if needed
+              zebraPrinter.discoveryPrinters();
+            },
+            child: Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+
+  void onChangePrinterStatus(String status, String color) {
+    // Handle printer status change event
+  }
+
+  void onPermissionDenied() {
+    // Handle permission denied event
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(widget.title),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            ElevatedButton(
+              onPressed: () {
+                // Trigger printer discovery here
+                setState(() {
+                  discoveryInProgress = true;
+                });
+                zebraPrinter.discoveryPrinters();
+              },
+              child: Text('Discover Printers'),
+            ),
+            SizedBox(height: 16),
+            discoveryInProgress
+                ? CircularProgressIndicator() // Display a loading indicator during discovery
+                : Expanded(
+              child: ListView.builder(
+                itemCount: discoveredPrinters.length,
+                itemBuilder: (context, index) {
+                  final printer = discoveredPrinters[index];
+                  return ListTile(
+                    title: Text(printer.name),
+                    subtitle: Text(printer.ipAddress),
+                    trailing: Icon(printer.isWifi ? Icons.wifi : Icons.lan),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+
+      ),
+    );
+  }
+}
+
+class DiscoveredPrinter {
+  final String name;
+  final String ipAddress;
+  final bool isWifi;
+
+  DiscoveredPrinter({
+    required this.name,
+    required this.ipAddress,
+    required this.isWifi,
+  });
+}

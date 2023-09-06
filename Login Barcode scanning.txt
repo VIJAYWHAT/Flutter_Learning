@@ -1,0 +1,517 @@
+import 'dart:convert';
+import 'package:Wekaya/src/pages/splash.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+// import 'package:http/http.dart' as http;
+import 'package:http/http.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+// import 'package:wekaya/src/config/wekayaconfig.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+// import 'package:wekaya/src/pages/splash.dart';
+
+import 'homepage.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: LoginScreen(),
+    );
+  }
+}
+
+class LoginScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      body: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            SizedBox(height: MediaQuery.of(context).size.height *0.08),
+            Container(
+              alignment: Alignment.center,
+              padding: EdgeInsets.all(05.0),
+              child: Image.asset(
+                'assets/login_logo.png', // Replace with your logo asset path
+                width: 100.0, // Set the logo width
+                height: 100.0, // Set the logo height
+              ),
+            ),
+            Text("Collection App",style: TextStyle(
+              color: Color(0xFF00AF40),
+              fontSize: 14,
+              fontFamily: 'Inter',
+              fontWeight: FontWeight.w500,
+              height: 1.71,
+            ),),
+            SizedBox(height: 10.0), // Spacer between logo and login form
+            LoginForm(), // Your login form widget
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class LoginForm extends StatefulWidget {
+  @override
+  _LoginFormState createState() => _LoginFormState();
+}
+
+class _LoginFormState extends State<LoginForm> {
+  final _formKey = GlobalKey<FormState>();
+  bool _password_visiable = true;
+  String _scanBarcodeResult = '';
+  String _scanBarcodeResult2 = '';
+  String _scanBarcodeResult3 = '';
+
+
+  TextEditingController dateController = TextEditingController();
+  TextEditingController passwordController = TextEditingController();
+  TextEditingController collectionAgentID = TextEditingController();
+  TextEditingController driverID = TextEditingController();
+  TextEditingController truckID = TextEditingController();
+  // TextEditingController emailController = TextEditingController();
+  // void login(String date, collector_id, collector_pin, driver_id, truck_id) async {
+  //   //let create a api
+  //   try{
+  //     Response response = post(Uri.parse('https://dev-staging.wekaya.ae/hybrid-collection/index.php/api/collection/authentication'),
+  //         body: {
+  //             'date': date,
+  //             'collector_id': collector_id,
+  //             'collector_pin': collector_pin,
+  //             'driver_id': driver_id,
+  //             'truck_id': truck_id,
+  //         }
+  //     ) as Response;
+  //     if(response.statusCode == 200){
+  //       print('account created');
+  //     }else{
+  //       print("failed");
+  //     }
+  //   } catch(e){
+  //       print(e.toString());
+  //   }
+  // }
+  // void login(BuildContext context) async{
+  //   if(dateController.text.isNotEmpty && passwordController.text.isNotEmpty && collectionAgentID.text.isNotEmpty && driverID.text.isNotEmpty && truckID.text.isNotEmpty){
+  //   var url = "https://dev-staging.wekaya.ae/hybrid-collection/index.php/api/collection/authentication";
+  //   // final Map<String, String> data = {
+  //   //   'date': dateController.text,
+  //   //   'collector_id': collectionAgentID.text,
+  //   //   'collector_pin': passwordController.text,
+  //   //   'driver_id': driverID.text,
+  //   //   'truck_id': truckID.text,
+  //   // };
+  //   final Map<String, dynamic> data = {
+  //     "app_user_data": [
+  //       {
+  //         'date': dateController.text,
+  //         'collector_id': collectionAgentID.text,
+  //         'collector_pin': passwordController.text,
+  //         'driver_id': driverID.text,
+  //         'truck_id': truckID.text,
+  //       }
+  //     ]
+  //   };
+  //   print(data);
+  //   var bodyy = json.encode(data);
+  //   var urlParse = Uri.parse(url);
+  //   Response response = await http.post(
+  //      urlParse,
+  //     body: bodyy,
+  //     headers: {
+  //        "Content-Type":"application/json"
+  //     }
+  //   );
+  //   print(response.body);
+  //   if (response.statusCode == 200) {
+  //     // Success: Navigate to Home Page or a Success Page
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => HomePage()),
+  //     );
+  //   } else {
+  //     // Error: Navigate to Error Page
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => SplashScreen()),
+  //     );
+  //   }
+  //
+  //   }else{
+  //     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Blank Value Found")));
+  //   }
+  //
+  // }
+  void login(BuildContext context) async {
+    if (dateController.text.isNotEmpty &&
+        passwordController.text.isNotEmpty &&
+        collectionAgentID.text.isNotEmpty &&
+        driverID.text.isNotEmpty &&
+        truckID.text.isNotEmpty) {
+      var url = "https://dev-staging.wekaya.ae/hybrid-collection/index.php/api/collection/authentication";
+
+      var urlParse = Uri.parse(url);
+      Response response = await http.post(
+        urlParse,
+        body: json.encode({
+          "app_user_data": [
+            {
+              'date': dateController.text,
+              'collector_id': collectionAgentID.text,
+              'collector_pin': passwordController.text,
+              'driver_id': driverID.text,
+              'truck_id': truckID.text,
+            }
+          ]
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final authToken = responseData['auth_token']; // Assuming the token key is 'auth_token'
+
+        if (authToken != null) {
+          // Here, you should validate the token using your server's logic or library.
+          // If the token is valid, you can save it securely for future API requests.
+          // You can also navigate to the Home Page.
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => HomePage()),
+          );
+        } else {
+          // Error: Token not present in response or validation failed
+          // Navigator.push(
+          //   context,
+          //   MaterialPageRoute(builder: (context) => LoginScreen()),
+          // );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Invalid user",textAlign: TextAlign.center,)),
+          );
+        }
+      } else {
+        // Error: API request failed
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => SplashScreen()),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Blank Value Found", textAlign: TextAlign.center,)),
+      );
+    }
+  }
+
+  void scanBarcodeNormal(int fieldNumber) async {
+    String barcodeScanRes;
+    try {
+      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+          "#ff6666", "cancel", true, ScanMode.BARCODE);
+    } on PlatformException {
+      barcodeScanRes = "Failed to get platform version";
+    }
+    setState(() {
+      if (fieldNumber == 1) {
+        _scanBarcodeResult = barcodeScanRes;
+        collectionAgentID.text = barcodeScanRes;
+      } else if (fieldNumber == 2) {
+        _scanBarcodeResult2 = barcodeScanRes;
+        driverID.text = barcodeScanRes;
+      } else if (fieldNumber == 3) {
+        _scanBarcodeResult3 = barcodeScanRes;
+        truckID.text = barcodeScanRes;
+      }
+    });
+  }
+
+  var is_vaild=false;
+  @override
+  void initState() {
+    super.initState();
+    // checkLogin();
+    dateController.text = "";
+  }
+  // void checkLogin() async{
+  //   // here we chech the already user login or not
+  //   SharedPreferences pref = await SharedPreferences.getInstance();
+  //   String? val =  pref.getString("login");
+  //   if(val != null){
+  //     Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (context) => HomePage()), (route) => false);
+  //     // Navigator.push(context as BuildContext, MaterialPageRoute(builder: (context) => HomePage());
+  //   }
+  // }
+  // void pageRoute(String token)
+  //   async{
+  //     SharedPreferences pref = await SharedPreferences.getInstance();
+  //     await pref.setString("login", token);
+  //     Navigator.push(
+  //       context,
+  //       MaterialPageRoute(builder: (context) => HomePage()), // Navigate to the home page
+  //     );
+  //   }
+  // void initState() {
+  //   dateController.text = ""; //set the initial value of text field
+  //   super.initState();
+  // }
+  @override
+
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+        child: Container(
+          padding: const EdgeInsets.all(24.0),
+            child: Column(
+              children: <Widget>[
+                TextFormField(
+                    controller: dateController,
+                    decoration:  InputDecoration(
+                      contentPadding: // Text Field height
+                      EdgeInsets.only(left: 10.0, top: 15.0, bottom: 15.0,right: 10.0),
+                      border: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color:
+                            Colors.white30, width: 2.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color:
+                            Colors.grey, width: 2.0),
+                      ),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      labelText: 'Select Date',
+
+                      suffixIcon: Align(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child: Image.asset(
+                        'assets/selecr_date.png', // Replace with your image asset path
+                        width: 24.0,
+                        height: 24.0,
+                      ),
+                      ),
+                      // icon: Icon(Icons.date_range)
+                    ),
+                    readOnly: true,  // when true user cannot edit text
+                    onTap: () async {
+                      //when click we have to show the datepicker
+                      DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: DateTime.now(), //get today's date
+                          firstDate:DateTime(2000), //DateTime.now() - not to allow to choose before today.
+                          lastDate: DateTime(2101)
+                      );
+
+                      if(pickedDate != null ){
+                        print(pickedDate);  //get the picked date in the format => 2022-07-04 00:00:00.000
+                        String formattedDate = DateFormat('yyyy-MM-dd').format(pickedDate); // format date in required form here we use yyyy-MM-dd that means time is removed
+                        print(formattedDate); //formatted date output using intl package =>  2022-07-04
+                        //You can format date as per your need
+
+                        setState(() {
+                          dateController.text = formattedDate; //set foratted date to TextField value.
+                        });
+                      }else{
+                        print("Date is not selected");
+                      }
+
+
+                    },
+                     validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your Collection Date';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20.0),
+                Column(
+                  children: [
+                    SizedBox(height: 16), // Adding some spacing between the two sections
+                    TextFormField(
+                      cursorColor: Colors.grey,
+                      controller: collectionAgentID,
+                      decoration: InputDecoration(
+                        contentPadding: EdgeInsets.only(left: 10.0, top: 15.0, bottom: 15.0, right: 10.0),
+                        border: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.white30, width: 2.0),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                        ),
+                        filled: true,
+                        fillColor: Colors.transparent,
+                        labelText: 'Collection Agent ID',
+                        suffixIcon: Align(
+                          widthFactor: 1.0,
+                          heightFactor: 1.0,
+                          child:ElevatedButton(
+                            onPressed: () => scanBarcodeNormal(1),
+                              child: Icon(Icons.qr_code,),
+                          ),
+                        ),
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your Collection Agent ID';
+                        }
+                        return null;
+                      },
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: 20.0),
+                TextFormField(
+                  controller: passwordController,
+                  decoration:  InputDecoration(contentPadding: // Text Field height
+                  EdgeInsets.only(left: 10.0, top: 15.0, bottom: 15.0,right: 10.0),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.white30, width: 2.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.grey, width: 2.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                    labelText: 'PIN',
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                          color:  Color(0xFFA0A0A0),
+                          !_password_visiable
+                              ? Icons.visibility
+                              : Icons.visibility_off),
+                      onPressed: () {
+                        setState(
+                              () {
+                            _password_visiable = !_password_visiable;
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  obscureText: _password_visiable,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your PIN';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20.0),
+                TextFormField(
+                  controller: driverID,
+                  decoration: InputDecoration(
+                    contentPadding: // Text Field height
+                    EdgeInsets.only(left: 10.0, top: 15.0, bottom: 15.0,right: 10.0),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.white30, width: 2.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.grey, width: 2.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                      labelText: 'Driver ID',
+                      suffixIcon: Align(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child:ElevatedButton(
+                          onPressed: () => scanBarcodeNormal(2),
+                          child: Icon(Icons.qr_code,),
+                        ),
+                      ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your Driver ID';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 20.0),
+                TextFormField(
+                  controller: truckID,
+                  decoration: InputDecoration(contentPadding: // Text Field height
+                  EdgeInsets.only(left: 10.0, top: 15.0, bottom: 15.0,right: 10.0),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.white30, width: 2.0),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(
+                          color:
+                          Colors.grey, width: 2.0),
+                    ),
+                    filled: true,
+                    fillColor: Colors.transparent,
+                      labelText: 'Truck ID',
+                      suffixIcon: Align(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child:ElevatedButton(
+                          onPressed: () => scanBarcodeNormal(3),
+                          child: Icon(Icons.qr_code,),
+                        ),
+                      ),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your Truck ID';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 50.0),
+                ElevatedButton(
+                  onPressed: () {
+                    login(context);
+                    if (_formKey.currentState!.validate()) {
+                    }
+                  },
+                  child: Text('SUBMIT'),
+                  style: ElevatedButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(50.0)),
+                    backgroundColor:
+                    Color(0xFF05457B),
+                    primary: Colors.teal,
+                    minimumSize: const Size.fromHeight(50),
+                  ),
+                ),
+
+              ],
+            ),
+        ),
+    );
+  }
+
+}
+
+
+/*pubspec file
+  flutter_lints: ^2.0.0
+  cupertino_icons: ^1.0.2
+  simple_barcode_scanner: ^0.0.8*/
