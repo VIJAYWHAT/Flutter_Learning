@@ -1,13 +1,11 @@
-import 'dart:io';
 import 'dart:typed_data';
-
 import 'package:flutter/material.dart';
-import 'package:image_cropper/image_cropper.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:multi_image_picker/multi_image_picker.dart';
 
 void main() {
   runApp(MaterialApp(
+    debugShowCheckedModeBanner: false,
     home: Home(),
   ));
 }
@@ -18,66 +16,52 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  final ImagePicker imgpicker = ImagePicker();
-  String imagepath = "";
-  late File imagefile;
+  List<Asset> selectedImages = [];
 
-  openImage() async {
+  openImages() async {
+    List<Asset> resultList = [];
     try {
-      var pickedFile = await imgpicker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        imagepath = pickedFile.path;
-        imagefile = File(imagepath);
-        setState(() {});
+      resultList = await MultiImagePicker.pickImages(
+        maxImages: 10, // Maximum number of images to pick
+        enableCamera: true,
+      );
+    } on Exception catch (e) {
+      print("Error while picking images: $e");
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      selectedImages = resultList;
+    });
+  }
+
+  saveImages() async {
+    for (var asset in selectedImages) {
+      final ByteData byteData = await asset.getByteData();
+      final List<int> imageData = byteData.buffer.asUint8List();
+      final result = await ImageGallerySaver.saveImage(
+        Uint8List.fromList(imageData),
+        quality: 60,
+        name: "Wekaya_img_${DateTime.now().millisecondsSinceEpoch}.jpg",
+      );
+      if (result["isSuccess"] == true) {
+        print("Image saved successfully: ${result["filePath"]}");
+        _showSnackBar("Image saved successfully");
       } else {
-        print("No image is selected.");
+        print("Error saving image: ${result["errorMessage"]}");
+        _showSnackBar("Error saving image: ${result["errorMessage"]}");
       }
-    } catch (e) {
-      print("error while picking file.");
     }
   }
 
-  cropImage() async {
-    File? croppedfile = await ImageCropper.cropImage(
-        sourcePath: imagepath,
-        aspectRatioPresets: [
-          CropAspectRatioPreset.square,
-          CropAspectRatioPreset.ratio3x2,
-          CropAspectRatioPreset.original,
-          CropAspectRatioPreset.ratio4x3,
-          CropAspectRatioPreset.ratio16x9
-        ],
-        androidUiSettings: AndroidUiSettings(
-            toolbarTitle: 'Image Cropper',
-            toolbarColor: Colors.deepPurpleAccent,
-            toolbarWidgetColor: Colors.white,
-            initAspectRatio: CropAspectRatioPreset.original,
-            lockAspectRatio: false),
-        iosUiSettings: IOSUiSettings(
-          minimumAspectRatio: 1.0,
-        ));
-
-    if (croppedfile != null) {
-      imagefile = croppedfile;
-      setState(() {});
-    } else {
-      print("Image is not cropped.");
-    }
-  }
-
-  saveImage() async {
-    if (imagefile.existsSync()) {
-      Uint8List bytes = await imagefile.readAsBytes();
-      final result = await ImageGallerySaver.saveImage(bytes,
-          quality: 60, name: "new_image.jpg");
-      if (result['isSuccess']) {
-        print("Image saved successfully.");
-      } else {
-        print(result['errorMessage']);
-      }
-    } else {
-      print("Image file does not exist.");
-    }
+  void _showSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        duration: Duration(seconds: 1), // Adjust the duration as needed
+      ),
+    );
   }
 
   @override
@@ -85,7 +69,7 @@ class _HomeState extends State<Home> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text("Open Image, Crop and Save"),
+        title: Text("Open Images, Save All"),
         backgroundColor: Colors.deepPurpleAccent,
       ),
       body: Container(
@@ -94,33 +78,43 @@ class _HomeState extends State<Home> {
         padding: EdgeInsets.all(20),
         child: Column(
           children: [
-            imagepath != "" ? Image.file(imagefile) : Container(
-              child: Text("No Image selected."),
+            selectedImages.isNotEmpty
+                ? Expanded(
+              child: GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3, // Number of columns in the grid
+                ),
+                itemCount: selectedImages.length,
+                itemBuilder: (context, index) {
+                  return AssetThumb(
+                    asset: selectedImages[index],
+                    width: 300,
+                    height: 300,
+                  );
+                },
+              ),
+            )
+                : Container(
+              child: Text("No images selected."),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                // Open button
                 ElevatedButton(
                   onPressed: () {
-                    openImage();
+                    openImages();
                   },
-                  child: Text("Open Image"),
+                  child: Text("Open Images"),
                 ),
-                imagepath != ""
-                    ? ElevatedButton(
-                  style: ElevatedButton.styleFrom(primary: Colors.redAccent),
-                  onPressed: () {
-                    cropImage();
-                  },
-                  child: Text("Crop Image"),
-                )
-                    : Container(),
-                imagepath != ""
+
+                // Save button
+                selectedImages.isNotEmpty
                     ? ElevatedButton(
                   onPressed: () {
-                    saveImage();
+                    saveImages();
                   },
-                  child: Text("Save Image"),
+                  child: Text("Save All Images"),
                 )
                     : Container(),
               ],
@@ -131,3 +125,33 @@ class _HomeState extends State<Home> {
     );
   }
 }
+
+/*
+pubspec file
+
+  dependencies:
+  flutter:
+    sdk: flutter
+
+  image_picker: ^0.8.4+4
+  cupertino_icons: ^1.0.2
+  image_gallery_saver: ^2.0.3
+  multi_image_picker: ^4.8.01
+*/
+
+/*
+add this in debug\androidmanifest
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+*/
+
+/*
+add this in main\androidmanifest
+
+<application
+android:requestLegacyExternalStorage="true">
+
+*/
