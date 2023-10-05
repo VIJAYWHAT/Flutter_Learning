@@ -1,0 +1,365 @@
+import 'dart:async';
+import 'package:bluetooth_thermal_printer/bluetooth_thermal_printer.dart';
+import 'package:esc_pos_utils/esc_pos_utils.dart';
+import 'package:flutter/material.dart';
+void main() {
+  runApp(MyApp());
+
+}
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+class _MyAppState extends State<MyApp> {
+  @override
+  void initState() {
+    super.initState();
+  }
+  bool connected = false;
+  List availableBluetoothDevices = [];
+  Future<void> getBluetooth() async {
+    final List? bluetooths = await BluetoothThermalPrinter.getBluetooths;
+    print("Print $bluetooths");
+    setState(() {
+      availableBluetoothDevices = bluetooths!;
+    });
+  }
+  Future<void> setConnect(String mac) async {
+    print('string ' + mac.toString());
+    final String? result = await BluetoothThermalPrinter.connect(mac);
+    print("state conneected $result");
+    if (result == "true") {
+      setState(() {
+        connected = true;
+      });
+    }
+  }
+  Future<void> printTicket() async {
+    String? isConnected = await BluetoothThermalPrinter.connectionStatus;
+    if (isConnected == "true") {
+      List<int> bytes = await getTicket();
+      final result = await BluetoothThermalPrinter.writeBytes(bytes);
+      print("Print $result");
+    } else {
+      //Handle Not Connected Senario
+    }
+  }
+  Future<void> printGraphics() async {
+    String? isConnected = await BluetoothThermalPrinter.connectionStatus;
+    print("Connection " + isConnected.toString());
+    if (isConnected == "true") {
+      List<int> bytes = await getGraphicsTicket();
+      var result = await BluetoothThermalPrinter.writeBytes(bytes);
+      result = await BluetoothThermalPrinter.writeText("");
+      print("Print $result");
+    } else {
+      //Handle Not Connected Scenario
+    }
+  }
+
+/*  Future<List<int>> getGraphicsTicket() async {
+    List<int> bytes = [];
+    CapabilityProfile profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+// Print QR Code using native function
+    bytes += generator.qrcode('example.com');
+    bytes += generator.hr();
+// Print Barcode using native function
+    final List<int> barData = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 4];
+    bytes += generator.barcode(Barcode.upcA(barData));
+    bytes += generator.cut();
+    return bytes;
+  }*/
+
+  Future<List<int>> getGraphicsTicket() async {
+    List<int> bytes = [];
+    CapabilityProfile profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+
+    // Create a sentence to print
+    String sentence = '''
+      ^XA^CF0,60^FO50,50^GB100,100,100^FS^FO75,75^FR^GB100,100,100^FS^FO93,93^GB40,40,40^FS^FO220,50^FDUsisTech^FS^CF0,30^FO50,250^GB700,3,3^FS^XZ
+    ''';
+
+    // Print the sentence using QR code
+    bytes += generator.qrcode(sentence);
+    bytes += generator.hr();
+
+    // You can also print a barcode or perform other actions as needed
+
+    bytes += generator.cut();
+    return bytes;
+  }
+
+  /*Future<List<int>> getTicket() async {
+    List<int> bytes = [];
+    CapabilityProfile profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+    bytes += generator.text(
+        "",
+        styles: PosStyles(align: PosAlign.center),linesAfter: 1);
+    bytes += generator.text(
+      "Zebra Printer",
+      styles: PosStyles(
+          align: PosAlign.center,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+          bold: true
+      ),
+    );
+    bytes += generator.text(
+      "(514) 866-8808\n1255 ,\nMontreal, QC H3G 2B1",
+      styles: PosStyles(
+          align: PosAlign.center,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+          bold: true
+      ),
+    );
+    bytes += generator.text(
+        "",
+        styles: PosStyles(align: PosAlign.center),linesAfter: 1);
+    bytes += generator.row([
+      PosColumn(
+        text: 'Server: India',
+        width: 6,
+        styles: PosStyles(
+          align: PosAlign.left,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
+        ),),
+      PosColumn(
+          text: "07/09/2023",
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.right,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          )),
+    ]);
+    bytes += generator.row([
+      PosColumn(
+          text: '1000/1',
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          )),
+      PosColumn(
+          text: "11:55 AM",
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.right,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          )),
+    ]);
+    bytes += generator.row([
+      PosColumn(
+          text: 'Guests: 0',
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          )),
+      PosColumn(
+          text: '',
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          )),
+    ]);
+    bytes += generator.text('Order Type: Take-Out',
+        styles: PosStyles(align: PosAlign.left)
+    );
+    bytes += generator.row([
+      PosColumn(text: "4", width: 1),
+      PosColumn(
+          text: "Rova Dosa",
+          width: 5,
+          styles: PosStyles(
+            align: PosAlign.left,
+          )),
+      PosColumn(
+          text: "70",
+          width: 2,
+          styles: PosStyles(
+            align: PosAlign.center,
+          )),
+      PosColumn(text: "1", width: 2, styles: PosStyles(align: PosAlign.center)),
+      PosColumn(text: "70", width: 2, styles: PosStyles(align: PosAlign.right)),
+    ]);
+    bytes += generator.hr();
+    bytes += generator.row([
+      PosColumn(
+          text: 'TOTAL',
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size4,
+            width: PosTextSize.size4,
+          )),
+      PosColumn(
+          text: "160",
+          width: 6,
+          styles: PosStyles(
+            align: PosAlign.right,
+            height: PosTextSize.size4,
+            width: PosTextSize.size4,
+          )),
+    ]);
+    bytes += generator.hr(ch: '=', linesAfter: 1);
+// ticket.feed(2);
+    bytes += generator.text('Thank you!',
+        styles: PosStyles(align: PosAlign.center, bold: true));
+    bytes += generator.text("26-11-2020 15:22:45",
+        styles: PosStyles(align: PosAlign.center), linesAfter: 1);
+    bytes += generator.text(
+        'Note: Goods once sold will not be taken back or exchanged.',
+        styles: PosStyles(align: PosAlign.center, bold: false));
+    bytes += generator.cut();
+    return bytes;
+  }*/
+
+  Future<List<int>> getTicket() async {
+    List<int> bytes = [];
+    CapabilityProfile profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm80, profile);
+
+    /*String ticketText = "^XA "
+        "^FO50,50^GFA,7410,7410,38,,:L039CFC0707E1C1C1F9FFCE701F9F80E73CFF073FC1CFF073F07EFF8798070738,::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::L039CFC07gI073CgH018070738,:::L039CFC07L078U073C01FI07C001F8L01F818070738,L039CFC0701F003FF01IF001E007FF073C0FFC01FF807FE003E007FE18070738,L039CFC0703F007FF81IF003C007FF073C0FFE03FF80FFE007E00IF18070738,L039CFC0707F007FF81IF003C007FF073C1IF07FFC0IF00FE00IF18070738,L039CFC070FF00787C003F0078007I073C1E0F0783C1E0F03FE00F0798070738,L039CFC070FF00603C007E0078007I073C1E0F0783C1E0703FE00E0798070738,1FFI039CFC070F7J03C00FC00F8007I073C1C0F0781C1E0783DE01E0798070738007FF,1FFI039CFC070C7J07C01F800FI0FF0073C1C0F0781C1E07839E01E0798070738007FF,1FFI039CFC07087J0F803F801FI0FFC073C1C070701C1E07831E01E0798070738007FF,1CS07I01F803FE01E700FFEJ03C070701E1E07801E01E078Q0F,1CS07I07F003FE03E700E7FJ03C070701E1E07801E01E078P01E,1FCR07I0FEI03F03C7I01FJ03C070701C1E07801E01E078P03C,1FER07001FCJ0F03C7J0FJ01C070701C1E07801E01E078P07C,1FFR07003FK0707FFEI0FJ01C0F0781C1E07801E01E078P078,007R07003EK0787FFEI0FJ01C0F0781C1E07801E01E078P0F,007R07007CK0F87FFEI0FJ01E0F0783C1E07001E01E078P0F,0078Q07007800180F07FFE001FJ01E0F0783C1E0F001E00F078P0E,0078Q07007FFC1E3FI07I0FEJ01FBF07EFC1IF001E00IFQ0E,00FR07007FFC1FFEI0700FFCJ01FFE03FFC0IF001E00IFQ0E,1FFR07007FFC1FFCI0700FF8K0FFE03FF80FFE001E007FFQ0E,1FER07007FFC0FF8I0700FEL07FC01FF007FC001E003FCQ0E,1F8iO0E,,:::^FS "
+        "^FX Second section with recipient address and permit information. "
+        "^CFA,30 "
+        "^FO50,300^FDVijay^FS "
+        "^FO50,340^FD100 Main Street^FS "
+        "^FO50,380^FDSpringfield TN 39021^FS "
+        "^FO50,420^FDUnited States (USA)^FS "
+        "^CFA,15 "
+        "^FO600,300^GB150,150,3^FS "
+        "^FO638,340^FDPermit^FS "
+        "^FO638,390^FD123456^FS "
+        "^FO50,500^GB700,3,3^FS "
+        "^FX Third section with bar code. "
+        "^BY5,2,270 "
+        "^FO100,550^BC^FD12345678^FS "
+        "^FX Fourth section (the two boxes on the bottom). "
+        "^FO50,900^GB700,250,3^FS "
+        "^FO400,900^GB3,250,3^FS "
+        "^CF0,40 "
+        "^FO100,960^FDUsis Tech,^FS "
+        "^FO100,1010^FDCoimbatore,^FS "
+        "^FO100,1060^FDINDIA^FS "
+        "^CF0,190 "
+        "^FO470,955^FDCA^FS "
+        "^XZ";*/
+    /*String ticketText = '''
+    ^XA
+    ^FX Second section with recipient address and permit information.
+    ^CFA,30
+    ^FO50,300^FDVijay^FS
+    ^FO50,340^FD100 Main Street^FS
+    ^FO50,380^FDSpringfield TN 39021^FS
+    ^FO50,420^FDUnited States (USA)^FS
+    ^CFA,15
+    ^FO600,300^GB150,150,3^FS
+    ^FO638,340^FDPermit^FS
+    ^FO638,390^FD123456^FS
+    ^FO50,500^GB700,3,3^FS
+    
+    ^FX Third section with bar code.
+    ^BY5,2,270
+    ^FO100,550^BC^FD12345678^FS
+    
+    ^FX Fourth section (the two boxes on the bottom).
+    ^FO50,900^GB700,250,3^FS
+    ^FO400,900^GB3,250,3^FS
+    ^CF0,40
+    ^FO100,960^FDUsis Tech,^FS
+    ^FO100,1010^FDCoimbatore,^FS
+    ^FO100,1060^FDINDIA^FS
+    ^CF0,190
+    ^FO470,955^FDCA^FS
+    
+    ^XZ
+    ''';*/
+    String ticketText = "^XA^CF0,60^FO220,50^FDPrinting Success^FS^CF0,30^XZ";
+
+    bytes += generator.text(
+      ticketText,
+      styles: PosStyles(align: PosAlign.center),
+      linesAfter: 1,
+    );
+
+    bytes += generator.cut();
+    return bytes;
+  }
+
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      /*theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),*/
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        appBar: AppBar(
+          title: const Text('Zebra Printer'),
+        ),
+        body: Container(
+          padding: EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text("Search Paired Bluetooth Printer"),
+              TextButton(
+                onPressed: () {
+                  this.getBluetooth();
+                },
+                child: Text("Search"),
+              ),
+              Container(
+                height: 200,
+                child: ListView.builder(
+                  itemCount: availableBluetoothDevices.isNotEmpty
+                      ? availableBluetoothDevices.length
+                      : 0,
+                  itemBuilder: (context, index) {
+                    return ListTile(
+                      onTap: () {
+                        String select = availableBluetoothDevices[index];
+                        List list = select.split("#");
+                        // String name = list[0];
+                        String mac = list[1];
+                        this.setConnect(mac);
+                      },
+                      title: Text('${availableBluetoothDevices[index]}'),
+                      subtitle: Text(connected ? "Connected" : "Click to connect"),
+                    );
+                  },
+                ),
+              ),
+              SizedBox(
+                height: 30,
+              ),
+              TextButton(
+                onPressed: this.printGraphics ,
+                child: Text("Print"),
+              ),
+              TextButton(
+                onPressed: connected ? this.printTicket : null,
+                child: Text("Print Ticket"),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+}

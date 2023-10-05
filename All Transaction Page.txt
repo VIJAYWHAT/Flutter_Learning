@@ -1,0 +1,118 @@
+AppBar _appBar() {
+  return AppBar(
+    backgroundColor: Colors.transparent,
+    title: Text(
+      'All Transactions',
+      style: TextStyle(color: _themeController.color),
+    ),
+    leading: IconButton(
+        onPressed: () => Get.back(),
+        icon: Icon(Icons.arrow_back, color: _themeController.color)),
+    actions: [
+      Row(
+        children: [
+          Text(
+            _addTransactionController.transactionType.isEmpty
+                ? _transactionTypes[0]
+                : _addTransactionController.transactionType,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: _themeController.color,
+            ),
+          ),
+          SizedBox(
+            width: 40,
+            child: DropdownButtonHideUnderline(
+              child: DropdownButton2(
+                customButton: Icon(
+                  Icons.keyboard_arrow_down,
+                  color: _themeController.color,
+                ),
+                items: _transactionTypes
+                    .map(
+                      (item) => DropdownMenuItem(
+                        value: item,
+                        child: Text(
+                          item,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) {
+                  _addTransactionController.changeTransactionType(val as String);
+                  // Here, you can call a method to filter transactions
+                  // based on the selected type.
+                  _homeController.filterTransactionsByType(val as String);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
+    ],
+  );
+}
+
+
+
+
+// Old dropdown
+
+/*SizedBox(
+              width: 40,
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton2(
+                  customButton: Icon(
+                    Icons.keyboard_arrow_down,
+                    color: _themeController.color,
+                  ),
+                  items: _transactionTypes
+                      .map(
+                        (item) => DropdownMenuItem(
+                      value: item,
+                      child: Text(
+                        item,
+                      ),
+                    ),
+                  ).toList(),
+                  onChanged: (val) {
+                    _addTransactionController.changeTransactionType(val as String);
+                    // Handle "All" option separately
+                    if (val == 'All') {
+                      _homeController.clearTransactionTypeFilter();
+                    } else {
+                      // Filter transactions based on the selected type
+                      _homeController.filterTransactionsByType(val as String);
+                    }
+                  },
+                ),
+              ),
+            ),*/
+
+// New Dropdown 
+
+PopupMenuButton<String>(
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: _themeController.color,
+              ),
+              onSelected: (val) {
+                _addTransactionController.changeTransactionType(val);
+                // Handle "All" option separately
+                if (val == 'All') {
+                  _homeController.clearTransactionTypeFilter();
+                } else {
+                  // Filter transactions based on the selected type
+                  _homeController.filterTransactionsByType(val);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return _transactionTypes.map((item) {
+                  return PopupMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  );
+                }).toList();
+              },
+            )
+

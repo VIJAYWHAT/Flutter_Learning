@@ -57,7 +57,7 @@ class _HomeState extends State<Home> {
     return Scaffold(
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: Text("Open Images, Save All"),
+        title: Text("Image Saver"),
         backgroundColor: Colors.deepPurpleAccent,
       ),
       body: Container(
@@ -70,7 +70,7 @@ class _HomeState extends State<Home> {
                 ? Expanded(
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 3, // Number of columns in the grid
+                  crossAxisCount: 3, 
                 ),
                 itemCount: selectedImages.length,
                 itemBuilder: (context, index) {
@@ -125,7 +125,7 @@ dependencies:
   image_gallery_saver: ^2.0.3
   multi_image_picker: ^4.8.01*/
 
-/*// add this on debug\androidmanifest.xml
+/*// add this on debug/ and main/androidmanifest.xml
 <uses-permission android:name="android.permission.INTERNET"/>
 <uses-permission android:name="android.permission.CAMERA" />
 <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />

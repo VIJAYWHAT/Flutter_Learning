@@ -38,7 +38,7 @@ and check related version in this website ==> https://docs.gradle.org/current/us
 
 Add this line in gradle-wrapper.properties => distributionUrl=https\://services.gradle.org/distributions/gradle-6.7-all.zip 
 
-change/add java version in gradle.properties file ==> org.gradle.java.home=C:/Program Files/Java/jdk-11 //(change the current installed java version)
+change/add java version in gradle.properties file ==> org.gradle.java.home=C\:/Program Files/Java/jdk-11 //(change the current installed java version)
 
 
 ========================================================================

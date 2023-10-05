@@ -1,0 +1,286 @@
+import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_expense_tracker_app/controllers/add_transaction_controller.dart';
+import 'package:flutter_expense_tracker_app/controllers/home_controller.dart';
+import 'package:flutter_expense_tracker_app/controllers/theme_controller.dart';
+import 'package:flutter_expense_tracker_app/views/screens/edit_transaction_screen.dart';
+import 'package:flutter_expense_tracker_app/views/widgets/transaction_tile.dart';
+import 'package:get/get.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+/*class AllTransactionsScreen extends StatelessWidget {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  AllTransactionsScreen({Key? key}) : super(key: key);
+  final HomeController _homeController = Get.find();
+  final AddTransactionController _addTransactionController =
+      Get.put(AddTransactionController());
+  final ThemeController _themeController = Get.find();
+
+  final List<String> _transactionTypes = ['All', 'Income', 'Expense'];
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Obx(() {
+      return Scaffold(
+        key: _scaffoldKey,
+        appBar: _appBar(),
+        body: ListView.builder(
+          itemCount: _homeController.filteredTransactions.length,
+          itemBuilder: (context, i) {
+            final transaction = _homeController.filteredTransactions[i];
+            final text =
+                '${_homeController.selectedCurrency.symbol}${transaction.amount}';
+
+            final bool isIncome = transaction.type == 'Income' ? true : false;
+            final formatAmount = isIncome ? '+ $text' : '- $text';
+
+            return GestureDetector(
+              onTap: () async {
+                await Get.to(() => EditTransactionScreen(tm: transaction));
+                _homeController.getTransactions();
+              },
+              child: TransactionTile(
+                transaction: transaction,
+                formatAmount: formatAmount,
+                isIncome: isIncome,
+              ),
+            );
+          },
+        ),
+      );
+    });
+
+  }
+
+  AppBar _appBar() {
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      title: Text(
+        'All Transactions',
+        style: TextStyle(color: _themeController.color),
+      ),
+      leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: Icon(Icons.arrow_back, color: _themeController.color)),
+      actions: [
+
+        Row(
+          children: [
+            Text(
+              _addTransactionController.transactionType.isEmpty
+                  ? _transactionTypes[0]
+                  : _addTransactionController.transactionType,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: _themeController.color,
+              ),
+            ),
+
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: _themeController.color,
+              ),
+              onSelected: (val) {
+                _addTransactionController.changeTransactionType(val);
+                // Handle "All" option separately
+                if (val == 'All') {
+                  _homeController.clearTransactionTypeFilter();
+                } else {
+                  // Filter transactions based on the selected type
+                  _homeController.filterTransactionsByType(val);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return _transactionTypes.map((item) {
+                  return PopupMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  );
+                }).toList();
+              },
+            ),
+            TextButton(
+              onPressed: () {
+                  _showClearTransactionsDialog(context);
+              },
+              child: Text(
+                'Clear All',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: _themeController.color,
+                ),
+              ),
+            ),
+
+          ],
+        ),
+      ],
+    );
+  }
+
+  void _showClearTransactionsDialog() {
+    showDialog(
+      context: _scaffoldKey.currentContext!, // Use _scaffoldKey to get the context
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Clear All Transactions?'),
+          content: Text('Are you sure you want to clear all transactions?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _homeController.clearAllTransactions(); // Implement this method
+                Navigator.of(context).pop();
+              },
+              child: Text('Clear All'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+}*/
+
+class AllTransactionsScreen extends StatelessWidget {
+  AllTransactionsScreen({Key? key}) : super(key: key);
+  final HomeController _homeController = Get.find();
+  final AddTransactionController _addTransactionController =
+  Get.put(AddTransactionController());
+  final ThemeController _themeController = Get.find();
+
+  final List<String> _transactionTypes = ['All', 'Income', 'Expense'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      return Scaffold(
+        appBar: _appBar(context), // Pass the context to the _appBar method
+        body: ListView.builder(
+          itemCount: _homeController.filteredTransactions.length,
+          itemBuilder: (context, i) {
+            final transaction = _homeController.filteredTransactions[i];
+            final text =
+                '${_homeController.selectedCurrency.symbol}${transaction.amount}';
+
+            final bool isIncome = transaction.type == 'Income' ? true : false;
+            final formatAmount = isIncome ? '+ $text' : '- $text';
+
+            return GestureDetector(
+              onTap: () async {
+                await Get.to(() => EditTransactionScreen(tm: transaction));
+                _homeController.getTransactions();
+              },
+              child: TransactionTile(
+                transaction: transaction,
+                formatAmount: formatAmount,
+                isIncome: isIncome,
+              ),
+            );
+          },
+        ),
+      );
+    });
+  }
+
+  AppBar _appBar(BuildContext context) { // Accept the context as a parameter
+    return AppBar(
+      backgroundColor: Colors.transparent,
+      title: Text(
+        'All Transactions',
+        style: TextStyle(color: _themeController.color),
+      ),
+      leading: IconButton(
+          onPressed: () => Get.back(),
+          icon: Icon(Icons.arrow_back, color: _themeController.color)),
+      actions: [
+        Row(
+          children: [
+            Text(
+              _addTransactionController.transactionType.isEmpty
+                  ? _transactionTypes[0]
+                  : _addTransactionController.transactionType,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: _themeController.color,
+              ),
+            ),
+            PopupMenuButton<String>(
+              icon: Icon(
+                Icons.keyboard_arrow_down,
+                color: _themeController.color,
+              ),
+              onSelected: (val) {
+                _addTransactionController.changeTransactionType(val);
+                // Handle "All" option separately
+                if (val == 'All') {
+                  _homeController.clearTransactionTypeFilter();
+                } else {
+                  // Filter transactions based on the selected type
+                  _homeController.filterTransactionsByType(val);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return _transactionTypes.map((item) {
+                  return PopupMenuItem<String>(
+                    value: item,
+                    child: Text(item),
+                  );
+                }).toList();
+              },
+            ),
+            // Add a "Clear All Transactions" button
+            TextButton(
+              onPressed: () {
+                _showClearTransactionsDialog(context);
+              },
+              child: Text(
+                'Clear All',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  color: _themeController.color,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+
+  void _showClearTransactionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Clear All Transactions?'),
+          content: Text('Are you sure you want to clear all transactions?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _homeController.clearAllTransactions();
+                Navigator.of(context).pop();
+              },
+              child: Text('Clear All'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
