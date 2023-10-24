@@ -1,0 +1,766 @@
+// ignore_for_file: prefer_const_constructors, prefer_const_literals_to_create_immutables, use_build_context_synchronously
+
+import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:Wekaya/src/widget/Alert.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bluetooth_serial/flutter_bluetooth_serial.dart';
+import 'package:intl/intl.dart';
+import 'package:flutter_barcode_scanner/flutter_barcode_scanner.dart';
+
+import '../config/wekayaconfig.dart';
+import '../controller/disposal.dart';
+import '../model/LoginModel.dart';
+import '../services/custom.dart';
+import '../services/device_info.dart';
+import '../services/sqflite.dart';
+import './homepage.dart';
+import 'disposal_by_category_list.dart';
+import 'drawer.dart';
+
+class DisposalByCategory extends StatefulWidget {
+  var request_data;
+  var session_id;
+
+  DisposalByCategory({super.key, this.request_data, this.session_id});
+
+  @override
+  State<DisposalByCategory> createState() => _DisposalByCategoryState();
+}
+
+class _DisposalByCategoryState extends State<DisposalByCategory> {
+  bool isAutoSaving = false;
+  bool isListening = false;
+  final TextEditingController BinID = TextEditingController();
+  final TextEditingController WasteID = TextEditingController();
+  final TextEditingController WasteWeight = TextEditingController();
+  String _scanBarcodeResult = '';
+  String _scanBarcodeResult2 = '';
+  String weightData = ""; //weight data store use case
+  final focus1 = FocusNode();
+  final focus2 = FocusNode();
+  bool isConnected = false;
+  bool connectionFinished = false;
+  bool bluetoothStatus = false;
+  var connectedDevice;
+  String date = "";
+  String time = "";
+  String value = "";
+
+  get characteristic => null;
+  var get_data_values = null;
+
+  //Bluetooth use case
+  FlutterBluetoothSerial _bluetooth = FlutterBluetoothSerial.instance;
+  BluetoothConnection? _connection;
+  var _connection_status = false;
+
+  @override
+  void initState() {
+    super.initState();
+    checkBluetooth();
+    get_data();
+    if (widget.session_id == null) {
+      widget.session_id = Custom.generateRandomString();
+    }
+    WasteID.text =
+        (widget.request_data != null) ? widget.request_data['barcode'] : "";
+    print("${widget.session_id} ==============================");
+  }
+
+  get_data() async {
+    get_data_values = null;
+    var get_data_db = await Disposal.get_data_disposal_category();
+    if (get_data_db != null) {
+      setState(() {
+        get_data_values = get_data_db;
+      });
+    }
+  }
+
+  void _getPairedDevices() async {
+    List<BluetoothDevice> devices = [];
+    try {
+      devices = await _bluetooth.getBondedDevices();
+      if (!_connection_status) {
+        for (var i = 0; i < devices.length; i++) {
+          if (devices[i].name == "HC-05") {
+            connectToDevice(devices[i]);
+            setState(() {
+              connectedDevice = devices[i];
+            });
+          }
+        }
+      } else {
+        // _startListening();
+      }
+    } catch (ex) {
+      print("Error: $ex");
+    }
+  }
+
+  Future<void> connectToDevice(BluetoothDevice device) async {
+    try {
+      // _connection = await BluetoothConnection.toAddress(device.address);
+      _startListening(device.address);
+      setState(() {
+        _connection_status = true;
+      });
+    } catch (ex) {
+      print("Could not connect to the device: $ex");
+    }
+  }
+
+  Future<void> _startListening(address) async {
+    try {
+      await FlutterBluetoothSerial.instance.cancelDiscovery();
+
+      FlutterBluetoothSerial.instance.state.then((state) async {
+        print('Connected to the device');
+        BluetoothConnection connection =
+            await BluetoothConnection.toAddress(address);
+        Iterable<int> received = [];
+
+        connection.input?.listen((Uint8List data) {
+          print("recieved: $received===============");
+          received = received.followedBy(data);
+          String string = String.fromCharCodes(received);
+          var originalWeight =
+              string.substring(string.length - 10, string.length);
+
+          print("String $originalWeight");
+          if (originalWeight.contains("kg")) {
+            setState(() {
+              var trimmedWeight = originalWeight.trim();
+              WasteWeight.text = trimmedWeight;
+            });
+          }
+        }).onDone(() {
+          print('Disconnected by remote request');
+          connection.finish();
+          checkBluetooth();
+        });
+      });
+    } catch (exception) {
+      print('Cannot connect, exception occured');
+    }
+  }
+
+  void checkBluetooth() async {
+    var connection = await _bluetooth.isEnabled;
+    print(connection);
+    if (connection == true) {
+      setState(() {
+        bluetoothStatus = true;
+        _getPairedDevices();
+      });
+    } else {
+      setState(() {
+        bluetoothStatus = false;
+      });
+    }
+    // if (connection == false) {
+    //   return showDialog(
+    //       context: context,
+    //       builder: ((context) {
+    //         return WillPopScope(
+    //           onWillPop: () async {
+    //             return false;
+    //           },
+    //           child: AlertDialog(
+    //             title: Text('Alert',
+    //                 style: TextStyle(
+    //                   color: ColorGet.textcolor1,
+    //                   fontWeight: FontWeight.bold,
+    //                   fontSize: 20,
+    //                 )),
+    //             content:
+    //                 Text('Switch on the Bluetooth and refresh to continue.',
+    //                     style: TextStyle(
+    //                       fontSize: 16,
+    //                     )),
+    //             actions: [
+    //               TextButton(
+    //                   onPressed: () {
+    //                     Navigator.push(
+    //                         context,
+    //                         MaterialPageRoute(
+    //                             builder: (context) => HomePage()));
+    //                   },
+    //                   child: Text('Back',
+    //                       style: TextStyle(
+    //                         color: ColorGet.textcolor1,
+    //                         fontWeight: FontWeight.bold,
+    //                         fontSize: 16,
+    //                       ))),
+    //               TextButton(
+    //                   onPressed: () async {
+    //                     connection = await _bluetooth.isEnabled;
+    //                     if (connection == true) {
+    //                       Navigator.pop(context);
+    //                     }
+    //                   },
+    //                   child: Text('Refresh',
+    //                       style: TextStyle(
+    //                         color: ColorGet.textcolor1,
+    //                         fontWeight: FontWeight.bold,
+    //                         fontSize: 16,
+    //                       )))
+    //             ],
+    //           ),
+    //         );
+    //       }));
+    // }
+  }
+
+  resetform() {
+    BinID.text = "";
+    WasteWeight.text = "";
+    WasteID.text = "";
+  }
+
+  void scanBarcodeNormal(int fieldNumber) async {
+    String barcodeScanRes;
+    try {
+      barcodeScanRes = await FlutterBarcodeScanner.scanBarcode(
+          "#ff6666", "cancel", true, ScanMode.BARCODE);
+    } on PlatformException {
+      barcodeScanRes = "Failed to get platform version";
+    }
+    setState(() {
+      if (fieldNumber == 1) {
+        _scanBarcodeResult = barcodeScanRes;
+        BinID.text = (barcodeScanRes != '-1') ? barcodeScanRes : "";
+      } else if (fieldNumber == 2) {
+        _scanBarcodeResult2 = barcodeScanRes;
+        WasteID.text = (barcodeScanRes != '-1') ? barcodeScanRes : "";
+      }
+    });
+    if (isAutoSaving) {
+      if (BinID.text != '' && WasteID.text != '' && WasteWeight.text != '') {
+        await disposal_by_category_submit();
+      }
+    }
+  }
+
+  disposal_by_category_submit() async {
+    Map<String, dynamic>? data_type =
+        get_data_values['pending_data']?.firstWhere(
+      (waste) => waste['barcode'] == '${WasteID.text}',
+      orElse: () => {"data": null},
+    );
+    print('----${data_type}');
+    if (data_type != null && data_type["id"] != null) {
+      var data_exist = await SqflliteCollectionList.get_row_mutiple_all(
+          'Disposal',
+          "collection_date = ? and job_id = ? and waste_barcode = ?", [
+        '${data_type["collection_date"]}',
+        '${data_type['job_id']}',
+        '${WasteID.text}'
+      ]);
+      print('----ss${data_exist}');
+      if (data_exist.length <= 0) {
+        Map<String, dynamic> data_disposal_by_category = {
+          'collection_date': '${data_type["collection_date"]}',
+          'job_id': '${data_type['job_id']}',
+          'facility_id': '${data_type['facility_id']}',
+          'bin_barcode': '${BinID.text}',
+          'waste_barcode': '${WasteID.text}',
+          'submitted_date_time':
+              '${DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now())}',
+          'weight': '${WasteWeight.text}',
+          'waste_category': '${data_type['waste_category']}',
+          'session_id': "${widget.session_id}",
+          'sync_status': 0,
+        };
+        await SqflliteCollectionList.insert(
+            'Disposal', data_disposal_by_category);
+        await SqflliteCollectionList.update_row(
+            'CollectionBarcodes',
+            {"disposal_status": "1"},
+            "id = ?",
+            data_type['collection_barcode_id']);
+        resetform();
+        await get_data();
+      } else {
+        Alert.alert_show(context, "Already Disposal added");
+      }
+    } else {
+      Alert.alert_show(context, "waste category not available");
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: ColorGet.navBgColor,
+        title: Text('DISPOSAL BY CATEGORY',
+            style: TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontFamily: 'Inter',
+                fontWeight: FontWeight.w500)),
+        toolbarHeight: 56,
+        centerTitle: true,
+        elevation: 0,
+      ),
+      body: WillPopScope(
+        onWillPop: () async {
+          if (bluetoothStatus) {
+            return false;
+          } else {
+            return true;
+          }
+        },
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        // Navigator.push(
+                        //     context,
+                        //     MaterialPageRoute(
+                        //         builder: (context) => DisposalByCategoryList(
+                        //             id: 0, session_id: widget.session_id)))
+                        var result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => DisposalByCategoryList(
+                                    id: 0,
+                                    session_id: widget.session_id,
+                                  )),
+                        );
+                        print("${result}==========================");
+                        if (result != null) {
+                          setState(() {
+                            WasteID.text = result['barcode'];
+                          });
+                        }
+                      },
+                      child: Container(
+                        width: 156.0,
+                        padding: EdgeInsets.all(8),
+                        color: Color(0xFFF5F5F5),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/pending_icon.png',
+                              width: 18,
+                              height: 18,
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Text(
+                                'Pending - ${(get_data_values != null && get_data_values['pending_data'] != null) ? get_data_values['pending_data'].length : 0}')
+                          ],
+                        ),
+                      ),
+                    ),
+                    GestureDetector(
+                      onTap: () => {
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => DisposalByCategoryList(
+                                    id: 1, session_id: widget.session_id)))
+                      },
+                      child: Container(
+                        width: 156.0,
+                        padding: EdgeInsets.all(8),
+                        color: Color(0xFFF5F5F5),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              'assets/check_done_icon.png',
+                              width: 18,
+                              height: 18,
+                            ),
+                            SizedBox(
+                              width: 10,
+                            ),
+                            Text(
+                                'Disposed - ${(get_data_values != null && get_data_values['completed_data'] != null) ? get_data_values['completed_data'].length : 0}')
+                          ],
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+                SizedBox(
+                  height: 20,
+                ),
+                Container(
+                  margin: EdgeInsets.symmetric(vertical: 10),
+                  child: TextFormField(
+                    controller: BinID,
+                    autofocus: true,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.only(
+                          left: 10.0, top: 15.0, bottom: 15.0, right: 10.0),
+                      border: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Colors.white30, width: 2.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                      ),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      labelText: 'Bin ID / Barcode',
+                      suffixIcon: Align(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child: ElevatedButton(
+                          onPressed: () => scanBarcodeNormal(1),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            padding: EdgeInsets.only(
+                                top: 0, bottom: 0, left: 8.0, right: 0),
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide.none,
+                            ),
+                          ),
+                          child: Image.asset(
+                            'assets/barcode_code_scanner_icon.png',
+                            width: 26.0,
+                            height: 26.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                    onFieldSubmitted: (v) {
+                      FocusScope.of(context).requestFocus(focus1);
+                    },
+                    validator: (value) {},
+                  ),
+                ),
+                Container(
+                  margin: EdgeInsets.symmetric(vertical: 10),
+                  child: TextFormField(
+                    controller: WasteID,
+                    decoration: InputDecoration(
+                      contentPadding: EdgeInsets.only(
+                          left: 10.0, top: 15.0, bottom: 15.0, right: 10.0),
+                      border: OutlineInputBorder(
+                        borderSide:
+                            BorderSide(color: Colors.white30, width: 2.0),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderSide: BorderSide(color: Colors.grey, width: 2.0),
+                      ),
+                      filled: true,
+                      fillColor: Colors.transparent,
+                      labelText: 'Waste ID / Barcode',
+                      suffixIcon: Align(
+                        widthFactor: 1.0,
+                        heightFactor: 1.0,
+                        child: ElevatedButton(
+                          onPressed: () => scanBarcodeNormal(2),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            elevation: 0,
+                            padding: EdgeInsets.only(
+                                top: 0, bottom: 0, left: 8.0, right: 0),
+                            shape: RoundedRectangleBorder(
+                              side: BorderSide.none,
+                            ),
+                          ),
+                          child: Image.asset(
+                            'assets/barcode_code_scanner_icon.png',
+                            width: 26.0,
+                            height: 26.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                    focusNode: focus1,
+                    onFieldSubmitted: (z) {
+                      FocusScope.of(context).requestFocus(focus2);
+                    },
+                    validator: (value) {},
+                  ),
+                ),
+                Stack(
+                  children: [
+                    Container(
+                      margin: EdgeInsets.symmetric(vertical: 10),
+                      child: TextFormField(
+                        readOnly: true,
+                        controller: WasteWeight,
+                        decoration: InputDecoration(
+                          contentPadding: EdgeInsets.only(
+                              left: 10.0, top: 15.0, bottom: 15.0, right: 10.0),
+                          border: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.white30, width: 2.0),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.grey, width: 2.0),
+                          ),
+                          filled: true,
+                          fillColor: Colors.transparent,
+                          labelText: 'Weight',
+                          suffixIcon: Align(
+                            widthFactor: 1.0,
+                            heightFactor: 1.0,
+                            child: ElevatedButton(
+                              onPressed: () async {},
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.transparent,
+                                elevation: 0,
+                                padding: EdgeInsets.only(
+                                    top: 0, bottom: 0, left: 8.0, right: 0),
+                                shape: RoundedRectangleBorder(
+                                  side: BorderSide.none,
+                                ),
+                              ),
+                              child: Image.asset(
+                                'assets/bluetooth_icon.png',
+                                width: 20.0,
+                                height: 20.0,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                        ),
+                        focusNode: focus2,
+                        textInputAction: TextInputAction.done,
+                        validator: (value) {},
+                      ),
+                    ),
+                    Positioned(
+                        height: 60,
+                        width: 100,
+                        right: 46,
+                        top: 4,
+                        child: bluetoothStatus
+                            ? GestureDetector(
+                                onTap: () async {
+                                  await FlutterBluetoothSerial.instance
+                                      .requestDisable();
+                                  checkBluetooth();
+                                },
+                                child: Image.asset("assets/load-gif.gif"))
+                            : GestureDetector(
+                                onTap: () async {
+                                  await FlutterBluetoothSerial.instance
+                                      .requestEnable();
+                                  checkBluetooth();
+                                },
+                                child:
+                                    Image.asset('assets/blt_start_icon.png')))
+                  ],
+                ),
+                SizedBox(
+                  height: 8,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Checkbox(
+                            side:
+                                BorderSide(color: Color(0xFF05457B), width: 2),
+                            checkColor: Color(0xFF05457B),
+                            activeColor: Colors.white,
+                            visualDensity: VisualDensity(
+                                horizontal: VisualDensity.minimumDensity),
+                            value: isAutoSaving,
+                            onChanged: ((value) => setState(() {
+                                  isAutoSaving = !isAutoSaving;
+                                })),
+                          ),
+                          TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  isAutoSaving = !isAutoSaving;
+                                });
+                              },
+                              child: Text(
+                                'Auto Submit',
+                                style: TextStyle(color: Colors.black),
+                              ))
+                        ],
+                      ),
+                    ),
+                    SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        height: 44,
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            if (BinID.text != '' &&
+                                WasteID.text != '' &&
+                                WasteWeight.text != '') {
+                              await disposal_by_category_submit();
+                            }
+                          },
+                          child: const Text('SUBMIT'),
+                          style: ElevatedButton.styleFrom(
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(2.0)),
+                              backgroundColor: ColorGet.navBgColor,
+                              textStyle: const TextStyle(fontSize: 16)),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
+                (get_data_values != null &&
+                        get_data_values['last_added_request'].length > 0)
+                    ? Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: EdgeInsets.only(top: 30),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Last Disposed Item',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                                SizedBox(
+                                  height: 20,
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                                        width: 130,
+                                        child: Text('Facility Name: ')),
+                                    Expanded(
+                                        child: Text(
+                                      '${get_data_values['last_added_request'][0]['facility_name']}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    ))
+                                  ],
+                                ),
+                                Divider(color: Colors.grey),
+                                SizedBox(
+                                  height: 12,
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                                        width: 130,
+                                        child: Text('License Number: ')),
+                                    Text(
+                                      '${get_data_values['last_added_request'][0]['license_number']}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    )
+                                  ],
+                                ),
+                                Divider(color: Colors.grey),
+                                SizedBox(
+                                  height: 12,
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                                        width: 130, child: Text('Barcode: ')),
+                                    Text(
+                                      '${get_data_values['last_added_request'][0]['barcode']}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    )
+                                  ],
+                                ),
+                                Divider(color: Colors.grey),
+                                SizedBox(
+                                  height: 12,
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                                        width: 130,
+                                        child: Text('Waste Type: ')),
+                                    Text(
+                                      '${get_data_values['last_added_request'][0]['waste_category_name']}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    )
+                                  ],
+                                ),
+                                Divider(color: Colors.grey),
+                                SizedBox(
+                                  height: 12,
+                                ),
+                                Row(
+                                  children: [
+                                    Container(
+                                        width: 130, child: Text('Weight: ')),
+                                    Text(
+                                      '${get_data_values['last_added_request'][0]['weight']}',
+                                      style: TextStyle(
+                                          fontWeight: FontWeight.w600),
+                                    )
+                                  ],
+                                ),
+                                Divider(color: Colors.grey),
+                                Container(
+                                  margin: EdgeInsets.symmetric(vertical: 30),
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DisposalByCategoryList(
+                                                    id: 1,
+                                                    session_id:
+                                                        widget.session_id,
+                                                  )));
+                                    },
+                                    child: const Text('View All'),
+                                    style: ElevatedButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(2.0)),
+                                        backgroundColor: ColorGet.navBgColor,
+                                        primary: Colors.teal,
+                                        textStyle:
+                                            const TextStyle(fontSize: 16)),
+                                  ),
+                                )
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    : Container(),
+              ],
+            ),
+          ),
+        ),
+      ),
+      drawer: bluetoothStatus ? Alert.CloseAlert(context) : DrawerWidget(),
+    );
+  }
+}
