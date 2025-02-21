@@ -1,0 +1,61 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late String imageUrl;
+  bool isLoading = true; // Track loading state
+  final storage = FirebaseStorage.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    imageUrl = '';
+    loadProfileImage();
+  }
+
+  Future<void> loadProfileImage() async {
+    try {
+      final ref = storage.ref().child('profile_images.png');
+      final url = await ref.getDownloadURL();
+      setState(() {
+        imageUrl = url;
+        isLoading = false; // Set loading to false once the image is loaded
+      });
+    } catch (e) {
+      print("Error loading image: $e");
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Home')),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            isLoading
+                ? CircularProgressIndicator() // Show loading indicator
+                : SizedBox(
+                    height: 300,
+                    child: Image(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+            SizedBox(height: 20), // Space between image and text
+            Text('Welcome! You are logged in.'),
+          ],
+        ),
+      ),
+    );
+  }
+}
